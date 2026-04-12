@@ -29,7 +29,11 @@ The brief also calls for a central Event Bus and a kiosk interface facade, which
 
 The main project brief also requires modular subsystems, persistence, and simplified external access through `KioskInterface`. fileciteturn0file1
 
-## How to run
+## Working Simulation
+
+A complete and functional working simulation is included. The simulation tests the full flow, including dynamic pricing, emergency lockdown mode, hardware failure recovery, and transaction rollbacks. 
+
+To run the working simulation:
 
 ```bash
 python main.py
