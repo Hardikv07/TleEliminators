@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AURA OS | Retail Kiosk Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#f4f1eb;--card:#fff;--border:#e2ddd4;--primary:#2d6a4f;--primary-l:#40916c;--accent:#d4a373;--accent-d:#b07d4f;--danger:#c1121f;--warn:#e09f3e;--text:#1b1b1b;--t2:#5c5c5c;--t3:#999;--font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;--shadow:0 2px 12px rgba(0,0,0,.06);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Navbar */
+.navbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.nav-brand{font-weight:800;font-size:1.2rem;color:var(--primary);letter-spacing:1px;display:flex;align-items:center;gap:8px}
+.nav-brand span{background:var(--primary);color:#fff;padding:4px 10px;border-radius:8px;font-size:.7rem;letter-spacing:2px}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:8px 18px;border-radius:10px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.2s;color:var(--t2);border:none;background:none}
+.nav-tab:hover{background:rgba(45,106,79,.08);color:var(--primary)}
+.nav-tab.on{background:var(--primary);color:#fff}
+.nav-right{display:flex;align-items:center;gap:12px}
+.mode-badge{padding:5px 14px;border-radius:20px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-active{background:#d8f3dc;color:var(--primary)}
+.badge-maintenance{background:#fff3cd;color:#856404}
+.badge-emergency{background:#f8d7da;color:var(--danger)}
+
+/* Container */
+.container{max-width:1200px;margin:0 auto;padding:28px 24px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:.2s}
+.stat:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.si-green{background:#d8f3dc}.si-amber{background:#fef3c7}.si-red{background:#fecaca}.si-blue{background:#dbeafe}
+.stat-label{font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.stat-val{font-size:1.5rem;font-weight:800;font-family:var(--mono)}
+.c-green{color:var(--primary)}.c-amber{color:var(--accent-d)}.c-red{color:var(--danger)}.c-blue{color:#2563eb}
+
+/* Grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+
+/* Card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.card-h{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:.85rem;font-weight:700}
+.card-h .tag{font-size:.55rem;padding:3px 8px;border-radius:6px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.tag-green{background:#d8f3dc;color:var(--primary)}.tag-amber{background:#fef3c7;color:#92400e}.tag-red{background:#fecaca;color:var(--danger)}.tag-blue{background:#dbeafe;color:#1d4ed8}.tag-purple{background:#ede9fe;color:#6d28d9}
+.card-b{padding:20px}
+
+/* Mode Buttons */
+.mode-row{display:flex;gap:10px}
+.mode-btn{flex:1;padding:16px;border-radius:12px;border:2px solid var(--border);background:var(--card);cursor:pointer;text-align:center;transition:.25s}
+.mode-btn:hover{border-color:var(--primary);transform:translateY(-2px)}
+.mode-btn.on{border-color:var(--primary);background:#d8f3dc}
+.mode-btn .m-icon{font-size:1.5rem;margin-bottom:6px}
+.mode-btn .m-name{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.alert-box{padding:12px 16px;border-radius:10px;font-size:.75rem;margin-top:14px;display:flex;align-items:center;gap:8px}
+.alert-warn{background:#fff3cd;color:#856404;border:1px solid #ffc107}
+.alert-danger{background:#f8d7da;color:var(--danger);border:1px solid #f5c6cb}
+
+/* Products */
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.prod{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:.2s}
+.prod:hover{border-color:var(--primary);transform:scale(1.03)}
+.prod-name{font-weight:700;font-size:.85rem;margin:6px 0 4px}
+.prod-price{color:var(--primary);font-family:var(--mono);font-weight:700;font-size:1rem}
+.prod-cat{font-size:.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:4px 0}
+.stock-bar{height:4px;background:#e5e7eb;border-radius:2px;margin-top:8px}
+.stock-fill{height:100%;border-radius:2px;transition:.3s}
+.prod-stock{font-size:.6rem;margin-top:4px;font-family:var(--mono)}
+
+/* Form */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.fg select,.fg input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:.75rem;color:var(--text);outline:none}
+.fg select:focus,.fg input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(45,106,79,.12)}
+
+/* Buttons */
+.btn{padding:10px 20px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-family:var(--font);font-weight:700;font-size:.75rem;transition:.2s}
+.btn:hover{border-color:var(--primary);background:rgba(45,106,79,.05)}
+.btn-pri{background:var(--primary);color:#fff;border:none}
+.btn-pri:hover{background:var(--primary-l);box-shadow:0 4px 12px rgba(45,106,79,.3)}
+.btn-danger{background:var(--danger);color:#fff;border:none}
+.btn-sm{padding:5px 12px;font-size:.6rem;border-radius:8px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* Events */
+.ev-list{max-height:320px;overflow-y:auto}
+.ev{padding:8px 12px;border-bottom:1px solid #f0ede8;display:flex;gap:10px;align-items:center;font-size:.72rem}
+.ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--primary)}.dot-red{background:var(--danger)}.dot-amber{background:var(--warn)}
+.ev-type{font-weight:700;font-family:var(--mono);font-size:.65rem;min-width:90px}
+.ev-data{color:var(--t3);font-size:.6rem;flex:1}
+
+/* Transactions */
+.tx{padding:12px 16px;margin-bottom:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px}
+.tx-top{display:flex;justify-content:space-between;align-items:center}
+.tx-id{font-family:var(--mono);font-weight:700;color:var(--primary);font-size:.7rem}
+.tx-amt{font-family:var(--mono);font-weight:800;font-size:.85rem}
+.tx-desc{font-size:.65rem;color:var(--t2);margin:4px 0 6px}
+
+/* Diagnostics */
+.diag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.diag{padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px}
+.diag .stat-label{margin-bottom:6px}
+.diag-val{font-family:var(--mono);font-weight:700;font-size:.9rem}
+
+/* Toast */
+.toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column-reverse;gap:8px}
+.toast{padding:12px 18px;border-radius:12px;font-size:.75rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.1);animation:slideUp .3s}
+.toast-ok{background:#d1fae5;color:var(--primary);border:1px solid #6ee7b7}
+.toast-err{background:#fee2e2;color:var(--danger);border:1px solid #fca5a5}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+
+/* Empty */
+.empty{text-align:center;padding:24px;color:var(--t3);font-size:.75rem}
+
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar" id="navbar"></nav>
+
+<!-- Content -->
+<div class="container" id="app"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const API="http://localhost:5000/api";
+let state=null,kiosks=[],activeId="",toasts=[];
+
+async function load(){
+  try{
+    const [kR,sR]=await Promise.all([gf("/kiosks"),gf("/state")]);
+    kiosks=kR;state=sR;activeId=sR.diagnostics.kiosk_id;
+    renderNav();render();
+  }catch(e){document.getElementById("app").innerHTML='<div class="empty" style="padding:60px;font-size:1rem">Cannot connect to API.<br>Run: <code>python api.py</code></div>';}
+}
+
+async function gf(p){const r=await fetch(API+p);return r.json();}
+async function post(p,b={}){
+  try{
+    const r=await fetch(API+p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+    const d=await r.json();
+    if(d.error||d.success===false) showToast(d.error||d.message,"err");
+    else showToast(d.message||"Done","ok");
+    load();return d;
+  }catch(e){showToast("Failed","err");}
+}
+
+function showToast(m,t="ok"){const id=Date.now();toasts.push({id,m,t});rToasts();setTimeout(()=>{toasts=toasts.filter(x=>x.id!==id);rToasts();},3000);}
+function rToasts(){document.getElementById("toasts").innerHTML=toasts.map(t=>`<div class="toast toast-${t.t}">${t.t==="err"?"✗":"✓"} ${t.m}</div>`).join("");}
+
+function renderNav(){
+  const d=state.diagnostics;
+  const mc=d.mode==="active"?"active":d.mode==="emergency"?"emergency":"maintenance";
+  document.getElementById("navbar").innerHTML=`
+    <div class="nav-brand"><span>AURA</span> Retail OS</div>
+    <div class="nav-tabs">
+      ${kiosks.map(k=>`<button class="nav-tab ${k.id===activeId?'on':''}" onclick="post('/kiosk/select',{id:'${k.id}'})">${k.location}</button>`).join("")}
+    </div>
+    <div class="nav-right">
+      <span class="mode-badge badge-${mc}">${d.mode}</span>
+      <button class="btn btn-sm" onclick="post('/undo')">↩ Undo</button>
+    </div>`;
+}
+
+function render(){
+  const d=state.diagnostics;
+  const inv=state.inventory;
+  const txns=state.transactions;
+  const evts=state.events;
+  const mode=state.mode;
+  const pricing=state.pricing;
+  const blocked=mode==="maintenance";
+  const isEmerg=mode==="emergency";
+
+  document.getElementById("app").innerHTML=`
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="stat-top"><div class="stat-icon si-green">⚡</div><div class="stat-label">Mode</div></div><div class="stat-val c-green">${mode}</div></div>
+    <div class="stat"><div class="stat-top"><div class="stat-icon si-amber">💰</div><div class="stat-label">Pricing</div></div><div class="stat-val c-amber">${pricing.replace("Pricing","")}</div></div>
+    <div class="stat"><div class="stat-top"><div class="stat-icon si-blue">📋</div><div class="stat-label">Transactions</div></div><div class="stat-val c-blue">${txns.length}</div></div>
+    <div class="stat"><div class="stat-top"><div class="stat-icon si-green">🔧</div><div class="stat-label">Hardware</div></div><div class="stat-val c-green">${d.hardware}</div></div>
+  </div>
+
+  <!-- Diagnostics -->
+  <div class="card">
+    <div class="card-h">⚙ System Diagnostics <span class="tag tag-green">Facade</span></div>
+    <div class="card-b">
+      <div class="diag-grid">
+        <div class="diag"><div class="stat-label">Sensors</div><div class="diag-val c-green">${d.hardware}</div></div>
+        <div class="diag"><div class="stat-label">Mode</div><div class="diag-val">${d.mode}</div></div>
+        <div class="diag"><div class="stat-label">Pricing</div><div class="diag-val c-amber">${d.pricing}</div></div>
+        <div class="diag"><div class="stat-label">Purchase</div><div class="diag-val ${d.purchase_allowed?'c-green':'c-red'}">${d.purchase_allowed?'✓ Allowed':'✗ Blocked'}</div></div>
+        <div class="diag"><div class="stat-label">Total Stock</div><div class="diag-val">${d.total_stock}</div></div>
+        <div class="diag"><div class="stat-label">Kiosk Type</div><div class="diag-val">${d.type}</div></div>
+      </div>
+      ${blocked?'<div class="alert-box alert-warn">🔧 Kiosk is in MAINTENANCE mode — all purchases are blocked.</div>':''}
+      ${isEmerg?'<div class="alert-box alert-danger">🚨 EMERGENCY mode — limited to 2 essential items with +10% pricing.</div>':''}
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- Mode Control -->
+    <div class="card">
+      <div class="card-h">🔄 Mode Control <span class="tag tag-purple">State</span></div>
+      <div class="card-b">
+        <div class="mode-row">
+          ${[["active","⚡","Active"],["maintenance","🔧","Maintenance"],["emergency","🚨","Emergency"]].map(([k,i,n])=>`
+            <div class="mode-btn ${mode===k?'on':''}" onclick="post('/mode',{mode:'${k}'})">
+              <div class="m-icon">${i}</div><div class="m-name">${n}</div>
+            </div>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="card">
+      <div class="card-h">💰 Pricing <span class="tag tag-amber">Strategy</span></div>
+      <div class="card-b">
+        <div class="mode-row">
+          ${[["standard","📊","Standard"],["discount","🏷","Discount"],["emergency","🚨","Emergency"]].map(([k,i,n])=>`
+            <div class="mode-btn ${pricing.toLowerCase().includes(k)?'on':''}" onclick="post('/pricing',{strategy:'${k}'})">
+              <div class="m-icon">${i}</div><div class="m-name">${n}</div>
+            </div>`).join("")}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Purchase Form -->
+  <div class="card">
+    <div class="card-h">🛒 Purchase <span class="tag tag-blue">Command</span></div>
+    <div class="card-b">
+      <div class="form-row">
+        <div class="fg" style="flex:2"><label>Product</label>
+          <select id="sel-p"><option value="">-- Select Product --</option>
+          ${inv.map(p=>`<option value="${p.id}">${p.name} — ₹${p.price} (Stock: ${p.stock})</option>`).join("")}</select>
+        </div>
+        <div class="fg" style="width:80px"><label>Qty</label><input id="sel-q" type="number" value="1" min="1"/></div>
+        <div class="fg" style="width:100px"><label>User ID</label><input id="sel-u" value="USER001"/></div>
+        <button class="btn btn-pri" onclick="doPurchase()" ${blocked?'disabled':''}>${blocked?'🔒 Locked':'🛒 Buy Now'}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory -->
+  <div class="card">
+    <div class="card-h">📦 Inventory <span class="tag tag-green">Factory</span></div>
+    <div class="card-b">
+      <div class="prod-grid">
+        ${inv.map(p=>{
+          const pct=Math.min(100,Math.round(p.stock/30*100));
+          const col=pct>50?'var(--primary)':pct>20?'var(--warn)':'var(--danger)';
+          return`<div class="prod">
+            <div style="font-size:1.4rem">${p.category==='essential'?'💊':p.category==='premium'?'💎':'🍽'}</div>
+            <div class="prod-name">${p.name}</div>
+            <div class="prod-price">₹${p.price}</div>
+            <div class="prod-cat">${p.category}</div>
+            <div class="stock-bar"><div class="stock-fill" style="width:${pct}%;background:${col}"></div></div>
+            <div class="prod-stock" style="color:${col}">Stock: ${p.stock}</div>
+            <button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="post('/restock',{pid:'${p.id}',qty:5})">+ Restock</button>
+          </div>`;}).join("")}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div>
+      <!-- Transactions -->
+      <div class="card">
+        <div class="card-h">📋 Transactions <span class="tag tag-blue">Command</span></div>
+        <div class="card-b" style="max-height:400px;overflow-y:auto">
+          ${txns.length===0?'<div class="empty">No transactions yet. Make a purchase!</div>':''}
+          ${txns.slice().reverse().map(t=>`
+            <div class="tx">
+              <div class="tx-top">
+                <span class="tx-id">TX-${t.id}</span>
+                <span class="tx-amt ${t.status==='refunded'?'c-red':'c-green'}">₹${t.amount}</span>
+              </div>
+              <div class="tx-desc">${t.product_name} × ${t.quantity} — ${t.status}</div>
+              <button class="btn btn-sm ${t.status==='refunded'?'':'btn-danger'}" onclick="post('/refund',{tid:'${t.id}'})" ${t.status==='refunded'?'disabled':''}>
+                ${t.status==='refunded'?'✓ Refunded':'↩ Refund'}
+              </button>
+            </div>`).join("")}
+        </div>
+      </div>
+
+      <!-- Memento -->
+      <div class="card">
+        <div class="card-h">📸 Rollback <span class="tag tag-amber">Memento</span></div>
+        <div class="card-b">
+          <p style="font-size:.75rem;color:var(--t2);margin-bottom:12px">Inventory is saved before each purchase. Click to restore previous state.</p>
+          <button class="btn btn-pri" style="width:100%" onclick="post('/undo')">↩ Undo Last Operation</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Events -->
+      <div class="card">
+        <div class="card-h">📡 Events <span class="tag tag-red">Observer</span></div>
+        <div class="card-b">
+          <div class="ev-list">
+            ${evts.length===0?'<div class="empty">No events yet</div>':''}
+            ${evts.slice().reverse().map(e=>{
+              const isDanger=e.type.includes("FAIL")||e.type.includes("EMERG");
+              const isWarn=e.type.includes("LOW");
+              const dot=isDanger?"dot-red":isWarn?"dot-amber":"dot-green";
+              return`<div class="ev"><span class="ev-dot ${dot}"></span><span class="ev-type">${e.type}</span><span class="ev-data">${JSON.stringify(e.data||{})}</span></div>`;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function doPurchase(){
+  const p=document.getElementById("sel-p").value;
+  const q=parseInt(document.getElementById("sel-q").value)||1;
+  const u=document.getElementById("sel-u").value||"USER001";
+  if(!p){showToast("Select a product","err");return;}
+  post("/purchase",{pid:p,qty:q,uid:u});
+}
+
+load();setInterval(load,4000);
+</script>
+</body>
+</html>
