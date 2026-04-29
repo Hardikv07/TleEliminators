@@ -42,5 +42,27 @@
     "user_id": "USER001",
     "pricing_used": "StandardPricing",
     "mode_used": "active"
+  },
+  {
+    "id": "cd3ca9eb",
+    "product_id": "p1",
+    "product_name": "Paracetamol",
+    "quantity": 1,
+    "amount": 20.0,
+    "status": "completed",
+    "user_id": "USER001",
+    "pricing_used": "StandardPricing",
+    "mode_used": "active"
+  },
+  {
+    "id": "9e0b9e28",
+    "product_id": "p1",
+    "product_name": "Paracetamol",
+    "quantity": 4,
+    "amount": 80.0,
+    "status": "completed",
+    "user_id": "USER001",
+    "pricing_used": "StandardPricing",
+    "mode_used": "active"
   }
 ]
