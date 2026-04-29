@@ -1,50 +1,46 @@
 [
   {
-    "id": "ff0f0cb1",
-    "product_id": "p1",
-    "product_name": "Paracetamol",
-    "quantity": 2,
-    "amount": 40.0,
-    "status": "refunded"
-  },
-  {
-    "id": "c91708d9",
+    "id": "01a56969",
     "product_id": "p1",
     "product_name": "Paracetamol",
     "quantity": 1,
     "amount": 22.0,
-    "status": "completed"
+    "status": "refunded",
+    "user_id": "USER001",
+    "pricing_used": "EmergencyPricing",
+    "mode_used": "emergency"
   },
   {
-    "id": "2a0b04bf",
-    "product_id": "p1",
-    "product_name": "Paracetamol",
-    "quantity": 1,
-    "amount": 17.0,
-    "status": "completed"
-  },
-  {
-    "id": "51db9860",
-    "product_id": "f1",
-    "product_name": "Sandwich",
-    "quantity": 1,
-    "amount": 55.0,
-    "status": "completed"
-  },
-  {
-    "id": "d47d3923",
+    "id": "c38058fa",
     "product_id": "f1",
     "product_name": "Sandwich",
     "quantity": 1,
     "amount": 50.0,
-    "status": "completed"
+    "status": "completed",
+    "user_id": "USER001",
+    "pricing_used": "StandardPricing",
+    "mode_used": "active"
   },
   {
-    "id": "b98198d0",
-    "product_id": "f1",
-    "product_name": "Sandwich",
+    "id": "c30d601e",
+    "product_id": "p1",
+    "product_name": "Paracetamol",
     "quantity": 1,
-    "amount": 55.0,
-    "status": "completed"
+    "amount": 20.0,
+    "status": "refunded",
+    "user_id": "USER001",
+    "pricing_used": "StandardPricing",
+    "mode_used": "active"
+  },
+  {
+    "id": "676efb8e",
+    "product_id": "p1",
+    "product_name": "Paracetamol",
+    "quantity": 1,
+    "amount": 20.0,
+    "status": "refunded",
+    "user_id": "USER001",
+    "pricing_used": "StandardPricing",
+    "mode_used": "active"
   }
 ]

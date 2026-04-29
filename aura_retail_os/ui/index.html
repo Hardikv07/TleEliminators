@@ -137,11 +137,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 const API="http://localhost:5000/api";
 let state=null,kiosks=[],activeId="",toasts=[];
 
+// Preserve form values across re-renders
+let formState={pid:"",qty:"1",uid:"USER001"};
+function saveForm(){
+  const p=document.getElementById("sel-p");
+  const q=document.getElementById("sel-q");
+  const u=document.getElementById("sel-u");
+  if(p) formState.pid=p.value;
+  if(q) formState.qty=q.value;
+  if(u) formState.uid=u.value;
+}
+function restoreForm(){
+  const p=document.getElementById("sel-p");
+  const q=document.getElementById("sel-q");
+  const u=document.getElementById("sel-u");
+  if(p) p.value=formState.pid;
+  if(q) q.value=formState.qty;
+  if(u) u.value=formState.uid;
+}
+
 async function load(){
   try{
     const [kR,sR]=await Promise.all([gf("/kiosks"),gf("/state")]);
     kiosks=kR;state=sR;activeId=sR.diagnostics.kiosk_id;
-    renderNav();render();
+    saveForm();renderNav();render();restoreForm();
   }catch(e){document.getElementById("app").innerHTML='<div class="empty" style="padding:60px;font-size:1rem">Cannot connect to API.<br>Run: <code>python api.py</code></div>';}
 }
 
@@ -161,7 +180,7 @@ function rToasts(){document.getElementById("toasts").innerHTML=toasts.map(t=>`<d
 
 function renderNav(){
   const d=state.diagnostics;
-  const mc=d.mode==="active"?"active":d.mode==="emergency"?"emergency":"maintenance";
+  const mc=d.mode==="active"?"active":d.mode==="emergency"?"emergency":d.mode==="power_saving"?"active":"maintenance";
   document.getElementById("navbar").innerHTML=`
     <div class="nav-brand"><span>AURA</span> Retail OS</div>
     <div class="nav-tabs">
@@ -170,6 +189,7 @@ function renderNav(){
     <div class="nav-right">
       <span class="mode-badge badge-${mc}">${d.mode}</span>
       <button class="btn btn-sm" onclick="post('/undo')">↩ Undo</button>
+      <button class="btn btn-sm" onclick="window.open('/api/export/csv/inventory')">📥 CSV</button>
     </div>`;
 }
 
@@ -180,8 +200,10 @@ function render(){
   const evts=state.events;
   const mode=state.mode;
   const pricing=state.pricing;
-  const blocked=mode==="maintenance";
+  const hwMods=state.hardware_modules||{};
+  const blocked=mode==="maintenance"||mode==="power_saving";
   const isEmerg=mode==="emergency";
+  const opStatus=d.operational_status||"OPERATIONAL";
 
   document.getElementById("app").innerHTML=`
   <!-- Stats -->
@@ -189,7 +211,7 @@ function render(){
     <div class="stat"><div class="stat-top"><div class="stat-icon si-green">⚡</div><div class="stat-label">Mode</div></div><div class="stat-val c-green">${mode}</div></div>
     <div class="stat"><div class="stat-top"><div class="stat-icon si-amber">💰</div><div class="stat-label">Pricing</div></div><div class="stat-val c-amber">${pricing.replace("Pricing","")}</div></div>
     <div class="stat"><div class="stat-top"><div class="stat-icon si-blue">📋</div><div class="stat-label">Transactions</div></div><div class="stat-val c-blue">${txns.length}</div></div>
-    <div class="stat"><div class="stat-top"><div class="stat-icon si-green">🔧</div><div class="stat-label">Hardware</div></div><div class="stat-val c-green">${d.hardware}</div></div>
+    <div class="stat"><div class="stat-top"><div class="stat-icon ${d.hardware_ok?'si-green':'si-red'}">🔧</div><div class="stat-label">Status</div></div><div class="stat-val ${opStatus==='OPERATIONAL'?'c-green':'c-red'}">${opStatus}</div></div>
   </div>
 
   <!-- Diagnostics -->
@@ -197,14 +219,16 @@ function render(){
     <div class="card-h">⚙ System Diagnostics <span class="tag tag-green">Facade</span></div>
     <div class="card-b">
       <div class="diag-grid">
-        <div class="diag"><div class="stat-label">Sensors</div><div class="diag-val c-green">${d.hardware}</div></div>
+        <div class="diag"><div class="stat-label">Hardware</div><div class="diag-val ${d.hardware_ok?'c-green':'c-red'}">${d.hardware_ok?'✓ OK':'✗ FAULT'}</div></div>
         <div class="diag"><div class="stat-label">Mode</div><div class="diag-val">${d.mode}</div></div>
         <div class="diag"><div class="stat-label">Pricing</div><div class="diag-val c-amber">${d.pricing}</div></div>
         <div class="diag"><div class="stat-label">Purchase</div><div class="diag-val ${d.purchase_allowed?'c-green':'c-red'}">${d.purchase_allowed?'✓ Allowed':'✗ Blocked'}</div></div>
         <div class="diag"><div class="stat-label">Total Stock</div><div class="diag-val">${d.total_stock}</div></div>
+        <div class="diag"><div class="stat-label">Available</div><div class="diag-val">${d.total_available||d.total_stock}</div></div>
+        <div class="diag"><div class="stat-label">Snapshots</div><div class="diag-val">${d.snapshots||0}</div></div>
         <div class="diag"><div class="stat-label">Kiosk Type</div><div class="diag-val">${d.type}</div></div>
       </div>
-      ${blocked?'<div class="alert-box alert-warn">🔧 Kiosk is in MAINTENANCE mode — all purchases are blocked.</div>':''}
+      ${blocked?'<div class="alert-box alert-warn">🔧 Kiosk is in '+mode.toUpperCase()+' mode — all purchases are blocked.</div>':''}
       ${isEmerg?'<div class="alert-box alert-danger">🚨 EMERGENCY mode — limited to 2 essential items with +10% pricing.</div>':''}
     </div>
   </div>
@@ -215,7 +239,7 @@ function render(){
       <div class="card-h">🔄 Mode Control <span class="tag tag-purple">State</span></div>
       <div class="card-b">
         <div class="mode-row">
-          ${[["active","⚡","Active"],["maintenance","🔧","Maintenance"],["emergency","🚨","Emergency"]].map(([k,i,n])=>`
+          ${[["active","⚡","Active"],["power_saving","💤","Power Save"],["maintenance","🔧","Maint."],["emergency","🚨","Emergency"]].map(([k,i,n])=>`
             <div class="mode-btn ${mode===k?'on':''}" onclick="post('/mode',{mode:'${k}'})">
               <div class="m-icon">${i}</div><div class="m-name">${n}</div>
             </div>`).join("")}
@@ -237,6 +261,22 @@ function render(){
     </div>
   </div>
 
+  <!-- Hardware Simulation -->
+  <div class="card">
+    <div class="card-h">🔌 Hardware Modules <span class="tag tag-red">Chain of Responsibility</span></div>
+    <div class="card-b">
+      <div class="mode-row">
+        ${Object.entries(hwMods).map(([mod,ok])=>`
+          <div class="mode-btn ${ok?'on':''}" style="${!ok?'border-color:var(--danger);background:#f8d7da':''}">
+            <div class="m-icon">${ok?'✅':'❌'}</div>
+            <div class="m-name">${mod}</div>
+            <button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="post('/hardware/${ok?'fault':'repair'}',{module:'${mod}'})">${ok?'⚡ Break':'🔧 Repair'}</button>
+          </div>`).join("")}
+      </div>
+      <p style="font-size:.65rem;color:var(--t3);margin-top:12px">Breaking a module triggers: Retry → Recalibration → Technician Alert chain. Products requiring that module become unavailable.</p>
+    </div>
+  </div>
+
   <!-- Purchase Form -->
   <div class="card">
     <div class="card-h">🛒 Purchase <span class="tag tag-blue">Command</span></div>
@@ -244,7 +284,7 @@ function render(){
       <div class="form-row">
         <div class="fg" style="flex:2"><label>Product</label>
           <select id="sel-p"><option value="">-- Select Product --</option>
-          ${inv.map(p=>`<option value="${p.id}">${p.name} — ₹${p.price} (Stock: ${p.stock})</option>`).join("")}</select>
+          ${inv.map(p=>`<option value="${p.id}" ${p.temporarily_unavailable?'disabled':''}>${p.name} — ₹${p.price} (Avail: ${p.available_stock!=null?p.available_stock:p.stock})${p.temporarily_unavailable?' [UNAVAILABLE]':''}</option>`).join("")}</select>
         </div>
         <div class="fg" style="width:80px"><label>Qty</label><input id="sel-q" type="number" value="1" min="1"/></div>
         <div class="fg" style="width:100px"><label>User ID</label><input id="sel-u" value="USER001"/></div>
@@ -259,15 +299,18 @@ function render(){
     <div class="card-b">
       <div class="prod-grid">
         ${inv.map(p=>{
-          const pct=Math.min(100,Math.round(p.stock/30*100));
-          const col=pct>50?'var(--primary)':pct>20?'var(--warn)':'var(--danger)';
-          return`<div class="prod">
+          const maxS=p.max_stock||30;
+          const avail=p.available_stock!=null?p.available_stock:p.stock;
+          const pct=Math.min(100,Math.round(avail/maxS*100));
+          const col=p.temporarily_unavailable?'var(--danger)':pct>50?'var(--primary)':pct>20?'var(--warn)':'var(--danger)';
+          return`<div class="prod" style="${p.temporarily_unavailable?'opacity:.5;border-color:var(--danger)':''}">
             <div style="font-size:1.4rem">${p.category==='essential'?'💊':p.category==='premium'?'💎':'🍽'}</div>
             <div class="prod-name">${p.name}</div>
             <div class="prod-price">₹${p.price}</div>
-            <div class="prod-cat">${p.category}</div>
+            <div class="prod-cat">${p.category}${p.required_module?' · '+p.required_module:''}</div>
+            ${p.temporarily_unavailable?'<div style="font-size:.55rem;color:var(--danger);font-weight:700;margin:4px 0">⚠ HW UNAVAILABLE</div>':''}
             <div class="stock-bar"><div class="stock-fill" style="width:${pct}%;background:${col}"></div></div>
-            <div class="prod-stock" style="color:${col}">Stock: ${p.stock}</div>
+            <div class="prod-stock" style="color:${col}">Avail: ${avail} / ${p.stock}</div>
             <button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="post('/restock',{pid:'${p.id}',qty:5})">+ Restock</button>
           </div>`;}).join("")}
       </div>
@@ -287,7 +330,7 @@ function render(){
                 <span class="tx-id">TX-${t.id}</span>
                 <span class="tx-amt ${t.status==='refunded'?'c-red':'c-green'}">₹${t.amount}</span>
               </div>
-              <div class="tx-desc">${t.product_name} × ${t.quantity} — ${t.status}</div>
+              <div class="tx-desc">${t.product_name} × ${t.quantity} — ${t.status} <span style="color:var(--t3);font-size:.55rem">[${t.pricing_used||''} | ${t.mode_used||''}]</span></div>
               <button class="btn btn-sm ${t.status==='refunded'?'':'btn-danger'}" onclick="post('/refund',{tid:'${t.id}'})" ${t.status==='refunded'?'disabled':''}>
                 ${t.status==='refunded'?'✓ Refunded':'↩ Refund'}
               </button>
@@ -299,7 +342,7 @@ function render(){
       <div class="card">
         <div class="card-h">📸 Rollback <span class="tag tag-amber">Memento</span></div>
         <div class="card-b">
-          <p style="font-size:.75rem;color:var(--t2);margin-bottom:12px">Inventory is saved before each purchase. Click to restore previous state.</p>
+          <p style="font-size:.75rem;color:var(--t2);margin-bottom:12px">Snapshots: <b>${d.snapshots||0}</b> — Inventory is saved before each purchase. Click to restore previous state.</p>
           <button class="btn btn-pri" style="width:100%" onclick="post('/undo')">↩ Undo Last Operation</button>
         </div>
       </div>
@@ -314,10 +357,22 @@ function render(){
             ${evts.length===0?'<div class="empty">No events yet</div>':''}
             ${evts.slice().reverse().map(e=>{
               const isDanger=e.type.includes("FAIL")||e.type.includes("EMERG");
-              const isWarn=e.type.includes("LOW");
+              const isWarn=e.type.includes("LOW")||e.type.includes("UNDO");
               const dot=isDanger?"dot-red":isWarn?"dot-amber":"dot-green";
               return`<div class="ev"><span class="ev-dot ${dot}"></span><span class="ev-type">${e.type}</span><span class="ev-data">${JSON.stringify(e.data||{})}</span></div>`;
             }).join("")}
+          </div>
+        </div>
+      </div>
+
+      <!-- Singleton Registry -->
+      <div class="card">
+        <div class="card-h">🏛 Central Registry <span class="tag tag-purple">Singleton</span></div>
+        <div class="card-b">
+          <div class="diag-grid">
+            <div class="diag"><div class="stat-label">Currency</div><div class="diag-val">INR</div></div>
+            <div class="diag"><div class="stat-label">Emergency Limit</div><div class="diag-val">2 items</div></div>
+            <div class="diag"><div class="stat-label">Low Stock Alert</div><div class="diag-val">≤ 3</div></div>
           </div>
         </div>
       </div>
@@ -330,10 +385,11 @@ function doPurchase(){
   const q=parseInt(document.getElementById("sel-q").value)||1;
   const u=document.getElementById("sel-u").value||"USER001";
   if(!p){showToast("Select a product","err");return;}
+  formState={pid:"",qty:"1",uid:"USER001"};
   post("/purchase",{pid:p,qty:q,uid:u});
 }
 
-load();setInterval(load,4000);
+load();setInterval(load,5000);
 </script>
 </body>
 </html>

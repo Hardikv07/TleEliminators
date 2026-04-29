@@ -5,7 +5,10 @@ Each pattern is clearly separated and easy to explain in a viva.
 import copy
 import json
 import threading
+import time
 from abc import ABC, abstractmethod
+from collections import defaultdict
+from typing import Callable, List, Tuple, Type, Any
 
 
 # ============================================================
@@ -15,22 +18,22 @@ from abc import ABC, abstractmethod
 class PricingStrategy(ABC):
     """Base class for pricing strategies."""
     @abstractmethod
-    def calculate(self, base_price, quantity):
+    def calculate(self, base_price: float, quantity: int) -> float:
         pass
 
 class StandardPricing(PricingStrategy):
     """Normal pricing - no modification."""
-    def calculate(self, base_price, quantity):
+    def calculate(self, base_price: float, quantity: int) -> float:
         return round(base_price * quantity, 2)
 
 class DiscountPricing(PricingStrategy):
     """15% discount on all items."""
-    def calculate(self, base_price, quantity):
+    def calculate(self, base_price: float, quantity: int) -> float:
         return round(base_price * quantity * 0.85, 2)
 
 class EmergencyPricing(PricingStrategy):
     """10% markup during emergencies."""
-    def calculate(self, base_price, quantity):
+    def calculate(self, base_price: float, quantity: int) -> float:
         return round(base_price * quantity * 1.10, 2)
 
 
@@ -51,6 +54,11 @@ class ActiveMode(KioskMode):
     name = "active"
     def can_purchase(self):
         return True, "Purchases allowed"
+
+class PowerSavingMode(KioskMode):
+    name = "power_saving"
+    def can_purchase(self):
+        return False, "Kiosk is in power-saving mode. Customer operations suspended."
 
 class MaintenanceMode(KioskMode):
     name = "maintenance"
@@ -103,30 +111,53 @@ class RefundCommand(Command):
     def undo(self):
         return None
 
+class RestockCommand(Command):
+    """Executes a restock operation."""
+    def __init__(self, kiosk, product_id, quantity):
+        self.kiosk = kiosk
+        self.product_id = product_id
+        self.quantity = quantity
+
+    def execute(self):
+        return self.kiosk._do_restock(self.product_id, self.quantity)
+
+    def undo(self):
+        return self.kiosk._undo_last()
+
 
 # ============================================================
-# 4. OBSERVER PATTERN - Event System
+# 4. OBSERVER PATTERN - Event System (Priority-Aware)
 # ============================================================
 
 class EventManager:
-    """Publish/subscribe event system."""
+    """Priority-aware publish/subscribe event system.
+    Higher-priority handlers execute first (e.g. emergency events)."""
+
     def __init__(self):
-        self._subscribers = {}
+        self._subscribers = {}      # event_type -> [(priority, handler), ...]
         self._log = []
 
-    def subscribe(self, event_type, handler):
+    def subscribe(self, event_type: str, handler: Callable, priority: int = 0):
+        """Subscribe to an event. Higher priority = executed first."""
         if event_type not in self._subscribers:
             self._subscribers[event_type] = []
-        self._subscribers[event_type].append(handler)
+        self._subscribers[event_type].append((priority, handler))
+        # Sort descending so high-priority runs first
+        self._subscribers[event_type].sort(key=lambda x: x[0], reverse=True)
 
-    def publish(self, event_type, data=None):
+    def publish(self, event_type: str, data: dict = None):
+        """Publish an event. All subscribers are notified in priority order."""
         entry = {"type": event_type, "data": data or {}}
         self._log.append(entry)
-        for handler in self._subscribers.get(event_type, []):
+        for _, handler in self._subscribers.get(event_type, []):
             handler(data)
 
     def get_log(self):
         return self._log[-50:]
+
+    def clear(self):
+        self._subscribers.clear()
+        self._log.clear()
 
 
 # ============================================================
@@ -159,6 +190,9 @@ class MementoManager:
 
     def has_snapshot(self):
         return len(self._snapshots) > 0
+
+    def count(self):
+        return len(self._snapshots)
 
 
 # ============================================================
@@ -210,6 +244,12 @@ class CentralRegistry:
                     "low_stock_threshold": 3,
                 }
                 cls._instance.kiosks = {}
+                cls._instance.status = {
+                    "mode": "active",
+                    "hardware_ok": True,
+                    "network_ok": True,
+                    "last_event": None,
+                }
         return cls._instance
 
     def register_kiosk(self, kiosk_id, info):
@@ -217,6 +257,19 @@ class CentralRegistry:
 
     def get_config(self):
         return self.config
+
+    def update_status(self, **kwargs):
+        self.status.update(kwargs)
+
+    def get_status(self):
+        return self.status
+
+    def snapshot(self):
+        return {
+            "config": dict(self.config),
+            "status": dict(self.status),
+            "kiosks": dict(self.kiosks),
+        }
 
 
 # ============================================================
@@ -233,7 +286,7 @@ class FailureHandler(ABC):
             return self.process(error)
         if self.next_handler:
             return self.next_handler.handle(error)
-        return {"resolved": False, "message": "Unhandled error"}
+        return {"resolved": False, "message": "Unhandled error", "handler": "None"}
 
     @abstractmethod
     def can_handle(self, error):
@@ -248,12 +301,36 @@ class RetryHandler(FailureHandler):
         return error.get("retryable", False)
 
     def process(self, error):
-        return {"resolved": True, "message": "Retry succeeded"}
+        return {"resolved": True, "message": "Auto-retry succeeded", "handler": "RetryHandler"}
 
-class AlertHandler(FailureHandler):
+class RecalibrationHandler(FailureHandler):
+    """Second try: recalibrate the hardware module."""
+    def can_handle(self, error):
+        return error.get("hardware_related", False)
+
+    def process(self, error):
+        # Simulate: recalibration succeeds 70% of the time
+        import random
+        success = random.random() < 0.7
+        return {
+            "resolved": success,
+            "message": "Recalibration succeeded" if success else "Recalibration failed",
+            "handler": "RecalibrationHandler"
+        }
+
+class TechnicianAlertHandler(FailureHandler):
     """Last resort: alert a technician."""
     def can_handle(self, error):
         return True
 
     def process(self, error):
-        return {"resolved": False, "message": "Technician alert issued"}
+        return {"resolved": False, "message": "Technician alert issued", "handler": "TechnicianAlertHandler"}
+
+
+# Build the default failure chain: Retry -> Recalibration -> Technician Alert
+def build_failure_chain():
+    """Builds the default chain: RetryHandler -> RecalibrationHandler -> TechnicianAlertHandler"""
+    technician = TechnicianAlertHandler()
+    recalibration = RecalibrationHandler(technician)
+    retry = RetryHandler(recalibration)
+    return retry

@@ -1,44 +1,82 @@
-[
-  {
-    "id": "p1",
-    "name": "Paracetamol",
-    "price": 20.0,
-    "stock": 18,
-    "category": "essential"
-  },
-  {
-    "id": "p2",
-    "name": "Insulin",
-    "price": 150.0,
-    "stock": 4,
-    "category": "premium"
-  },
-  {
-    "id": "f1",
-    "name": "Sandwich",
-    "price": 50.0,
-    "stock": 19,
-    "category": "general"
-  },
-  {
-    "id": "f2",
-    "name": "Juice",
-    "price": 30.0,
-    "stock": 18,
-    "category": "general"
-  },
-  {
-    "id": "e1",
-    "name": "Water Bottle",
-    "price": 10.0,
-    "stock": 20,
-    "category": "essential"
-  },
-  {
-    "id": "e2",
-    "name": "Energy Bar",
-    "price": 15.0,
-    "stock": 30,
-    "category": "essential"
-  }
-]
+{
+  "products": [
+    {
+      "id": "p1",
+      "name": "Paracetamol",
+      "price": 20.0,
+      "stock": 30,
+      "category": "essential",
+      "required_module": "",
+      "temporarily_unavailable": false,
+      "max_stock": 50
+    },
+    {
+      "id": "p2",
+      "name": "Insulin",
+      "price": 150.0,
+      "stock": 15,
+      "category": "premium",
+      "required_module": "refrigeration",
+      "temporarily_unavailable": false,
+      "max_stock": 20
+    },
+    {
+      "id": "f1",
+      "name": "Sandwich",
+      "price": 50.0,
+      "stock": 19,
+      "category": "general",
+      "required_module": "",
+      "temporarily_unavailable": false,
+      "max_stock": 30
+    },
+    {
+      "id": "f2",
+      "name": "Juice",
+      "price": 30.0,
+      "stock": 18,
+      "category": "general",
+      "required_module": "refrigeration",
+      "temporarily_unavailable": false,
+      "max_stock": 25
+    },
+    {
+      "id": "e1",
+      "name": "Water Bottle",
+      "price": 10.0,
+      "stock": 40,
+      "category": "essential",
+      "required_module": "",
+      "temporarily_unavailable": false,
+      "max_stock": 50
+    },
+    {
+      "id": "e2",
+      "name": "Energy Bar",
+      "price": 15.0,
+      "stock": 30,
+      "category": "essential",
+      "required_module": "",
+      "temporarily_unavailable": false,
+      "max_stock": 50
+    }
+  ],
+  "bundles": [
+    {
+      "id": "b1",
+      "name": "First Aid Kit",
+      "components": {
+        "p1": 2,
+        "p2": 1
+      }
+    },
+    {
+      "id": "b2",
+      "name": "Relief Pack",
+      "components": {
+        "e1": 2,
+        "e2": 2
+      }
+    }
+  ]
+}
